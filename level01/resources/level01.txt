@@ -1,0 +1,17 @@
+level01@SnowCrash:~$ cat /etc/passwd
+...
+flag01:42hDRfypTqqnw:3001:3001::/home/flag/flag01:/bin/bash
+...
+
+Install john:
+https://github.com/openwall/john
+
+Crack the password using john:
+~/src/john/run on bleeding-jumbo
+% echo "flag01:42hDRfypTqqnw:3001:3001::/home/flag/flag01:/bin/bash" > ~/flag01.passwd
+
+~/src/john/run on bleeding-jumbo
+% ./john --show ~/flag01.passwd
+flag01:abcdefg:3001:3001::/home/flag/flag01:/bin/bash
+
+1 password hash cracked, 0 left

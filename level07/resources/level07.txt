@@ -1,0 +1,7 @@
+We disassemble the level07 binary and notice it's reading the LOGNAME environment variable
+then constructs a string using asprinf with the following format: "/usr/bin/echo %s" where the formated string parameter
+is the value of LOGNAME
+
+We execute the binary with the following payload and get the flag:
+
+LOGNAME='&& getflag' ./level07

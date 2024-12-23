@@ -1,0 +1,63 @@
+We debug the binary with gdb and reverse engineer it
+
+We notice it reads the file passed from the first argument and sends it to the IP passed from the second argument over
+port 6969
+
+We create a simple python server that read requests using socket:
+
+```python
+import socket
+
+def handle_client(client_socket):
+    """Handle communication with the client."""
+    try:
+        data = ""
+
+        # Continuously receive data from the client until the connection is closed
+        while True:
+            chunk = client_socket.recv(1024)  # Read 1024 bytes at a time
+            if not chunk:
+                break  # No more data (connection closed)
+            data += chunk  # Accumulate the data
+
+        if data:
+            print "Received data:"
+            print data  # Print the full received data
+        else:
+            print "Received no data or connection closed."
+
+        # Send a simple acknowledgment back to the client
+        client_socket.sendall(b"200 OK\n")
+    except Exception as e:
+        print "Error:", e
+    finally:
+        # Close the client connection
+        client_socket.close()
+
+def start_server(host='0.0.0.0', port=6969):
+    """Start the TCP server and accept incoming connections."""
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(5)
+    print "Server listening on %s:%d..." % (host, port)
+
+    while True:
+        client_socket, client_address = server_socket.accept()
+        print "Connection established with", client_address
+        handle_client(client_socket)
+
+if __name__ == "__main__":
+    start_server()
+```
+
+We test with various payloads:
+
+./level10 $(pwd)/token 127.0.0.1
+You don't have access to /home/user/level10/token
+
+./level10 /etc/passwd 127.0.0.1
+Connecting to 127.0.0.1:6969 .. Connected!
+Sending file .. wrote file!
+
+It seems we can read only files that level10 has access to
+

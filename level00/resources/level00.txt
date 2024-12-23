@@ -1,0 +1,8 @@
+level00@SnowCrash:~$ find / -user flag00  2> /dev/null
+/usr/sbin/john
+/rofs/usr/sbin/john
+level00@SnowCrash:~$ cat /usr/sbin/john
+cdiiddwpgswtgt
+
+Decode it using https://www.dcode.fr/affine-cipher
+A=1,B=15	nottoohardhere

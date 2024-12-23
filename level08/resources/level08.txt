@@ -1,0 +1,8 @@
+We disassemble the level08 binary and notice that it reads the file passed as argument to the program
+if the don't contain "token" in their name
+
+We create a symbolic link in temp that links to /home/user/level08/token then execute the binary with this file
+as the argument, and we get the password of the flag08 account then we get the flag
+
+ln -s /home/user/level08/token /tmp/t0k3n
+./level08 /tmp/t0k3n

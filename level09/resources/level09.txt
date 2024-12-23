@@ -1,0 +1,22 @@
+We run the binary with some inputs and notice the input is encoded by adding the index to each ascii character
+
+We create a python script to decode the token file, get the token and use it as password for the flag10 user
+then we get the flag
+
+def decode_bytes(filename):
+    """Decode a file where each byte has been encoded by adding its index."""
+    with open(filename, "rb") as f:
+        encoded_bytes = f.read().strip()
+
+    decoded_bytes = bytearray()
+    for index, byte in enumerate(encoded_bytes):
+        decoded_byte = (byte - index) % 256
+        decoded_bytes.append(decoded_byte)
+    return decoded_bytes
+
+if __name__ == "__main__":
+    token_filename = "token"
+    decoded_output = decode_bytes(token_filename)
+
+    print("Decoded content:")
+    print(decoded_output.decode())
