@@ -1,0 +1,31 @@
+We realize that there is a file in user folder, level12.pl
+
+The file is a perl script, used as CGI by a server. We realize that there is a server listening in the port 4646.
+
+We've found in /etc/apache2/sites-available/level12.conf a configuration for running this cgi script with:
+
+	SuexecUserGroup flag12 level12
+
+which means that this cgi script will run with flag12 user and level12 group permissions.
+
+We also realize that the script has a shell injection vulnerability allowing us to inject shell commands through params.
+
+We see that the script is doing some sanitization capitalizing the input and deleting whitespaces.
+
+We create a simple script in /tmp/HOLA (note the capital letters in the name of the file):
+
+```
+getflag > /tmp/flag.txt
+```
+
+After this, we inject the script through the url param exposed by the cgi:
+
+```
+curl 'localhost:4646?x=`/*/HOLA`'
+```
+
+Note that we use wildcards to find the created script since the perl cgi script will be capitalizing everything and we don't have permissions to create folders in any other route than /tmp.
+
+after this, we find that /tmp/flag.txt has been successfully created including the flag.
+
+
