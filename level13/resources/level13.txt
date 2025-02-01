@@ -1,0 +1,181 @@
+We realize that there is a binary at the root of the user folder
+
+We run it and we get the following message: ""
+
+We see that the binary is calling getuid() twice and apparently comparing it with a predefined value: 4242
+
+We decide to debug the program, following the instructions we modify the register where the user id is being stored to contain the expected 4242 value.
+
+After continuing with the debugger we get the flag. This is due to the program storing the 4242 value in memory and just performing a basic comparison in order to reveal the flag.
+
+Executed commands:
+
+strings level13
+strace level13
+
+level13@SnowCrash:~$ gdb ./level13
+GNU gdb (Ubuntu/Linaro 7.4-2012.04-0ubuntu2.1) 7.4-2012.04
+Copyright (C) 2012 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "i686-linux-gnu".
+For bug reporting instructions, please see:
+<http://bugs.launchpad.net/gdb-linaro/>...
+Reading symbols from /home/user/level13/level13...(no debugging symbols found)...done.
+(gdb) set disassembly-flavour intel
+No symbol table is loaded.  Use the "file" command.
+(gdb) set disassembly-flavor intel
+(gdb) disass main
+Dump of assembler code for function main:
+   0x0804858c <+0>:	push   ebp
+   0x0804858d <+1>:	mov    ebp,esp
+   0x0804858f <+3>:	and    esp,0xfffffff0
+   0x08048592 <+6>:	sub    esp,0x10
+   0x08048595 <+9>:	call   0x8048380 <getuid@plt>
+   0x0804859a <+14>:	cmp    eax,0x1092
+   0x0804859f <+19>:	je     0x80485cb <main+63>
+   0x080485a1 <+21>:	call   0x8048380 <getuid@plt>
+   0x080485a6 <+26>:	mov    edx,0x80486c8
+   0x080485ab <+31>:	mov    DWORD PTR [esp+0x8],0x1092
+   0x080485b3 <+39>:	mov    DWORD PTR [esp+0x4],eax
+   0x080485b7 <+43>:	mov    DWORD PTR [esp],edx
+   0x080485ba <+46>:	call   0x8048360 <printf@plt>
+   0x080485bf <+51>:	mov    DWORD PTR [esp],0x1
+   0x080485c6 <+58>:	call   0x80483a0 <exit@plt>
+   0x080485cb <+63>:	mov    DWORD PTR [esp],0x80486ef
+   0x080485d2 <+70>:	call   0x8048474 <ft_des>
+   0x080485d7 <+75>:	mov    edx,0x8048709
+   0x080485dc <+80>:	mov    DWORD PTR [esp+0x4],eax
+   0x080485e0 <+84>:	mov    DWORD PTR [esp],edx
+   0x080485e3 <+87>:	call   0x8048360 <printf@plt>
+   0x080485e8 <+92>:	leave
+   0x080485e9 <+93>:	ret
+End of assembler dump.
+(gdb) x/s 0x1092
+0x1092:	 <Address 0x1092 out of bounds>
+(gdb) b main
+Breakpoint 1 at 0x804858f
+(gdb) run
+Starting program: /home/user/level13/level13
+
+Breakpoint 1, 0x0804858f in main ()
+(gdb) x/s 0x1092
+0x1092:	 <Address 0x1092 out of bounds>
+(gdb) b getuid
+Breakpoint 2 at 0xb7ee4cc0
+(gdb) continue
+Continuing.
+
+Breakpoint 2, 0xb7ee4cc0 in getuid () from /lib/i386-linux-gnu/libc.so.6
+(gdb) disass main
+Dump of assembler code for function main:
+   0x0804858c <+0>:	push   ebp
+   0x0804858d <+1>:	mov    ebp,esp
+   0x0804858f <+3>:	and    esp,0xfffffff0
+   0x08048592 <+6>:	sub    esp,0x10
+   0x08048595 <+9>:	call   0x8048380 <getuid@plt>
+   0x0804859a <+14>:	cmp    eax,0x1092
+   0x0804859f <+19>:	je     0x80485cb <main+63>
+   0x080485a1 <+21>:	call   0x8048380 <getuid@plt>
+   0x080485a6 <+26>:	mov    edx,0x80486c8
+   0x080485ab <+31>:	mov    DWORD PTR [esp+0x8],0x1092
+   0x080485b3 <+39>:	mov    DWORD PTR [esp+0x4],eax
+   0x080485b7 <+43>:	mov    DWORD PTR [esp],edx
+   0x080485ba <+46>:	call   0x8048360 <printf@plt>
+   0x080485bf <+51>:	mov    DWORD PTR [esp],0x1
+   0x080485c6 <+58>:	call   0x80483a0 <exit@plt>
+   0x080485cb <+63>:	mov    DWORD PTR [esp],0x80486ef
+   0x080485d2 <+70>:	call   0x8048474 <ft_des>
+   0x080485d7 <+75>:	mov    edx,0x8048709
+   0x080485dc <+80>:	mov    DWORD PTR [esp+0x4],eax
+   0x080485e0 <+84>:	mov    DWORD PTR [esp],edx
+   0x080485e3 <+87>:	call   0x8048360 <printf@plt>
+   0x080485e8 <+92>:	leave
+   0x080485e9 <+93>:	ret
+End of assembler dump.
+(gdb) disass
+Dump of assembler code for function getuid:
+=> 0xb7ee4cc0 <+0>:	mov    eax,0xc7
+   0xb7ee4cc5 <+5>:	call   DWORD PTR gs:0x10
+   0xb7ee4ccc <+12>:	ret
+End of assembler dump.
+(gdb) ni
+0xb7ee4cc5 in getuid () from /lib/i386-linux-gnu/libc.so.6
+(gdb) ni
+0xb7ee4ccc in getuid () from /lib/i386-linux-gnu/libc.so.6
+(gdb) ni
+0x0804859a in main ()
+(gdb) disass
+Dump of assembler code for function main:
+   0x0804858c <+0>:	push   ebp
+   0x0804858d <+1>:	mov    ebp,esp
+   0x0804858f <+3>:	and    esp,0xfffffff0
+   0x08048592 <+6>:	sub    esp,0x10
+   0x08048595 <+9>:	call   0x8048380 <getuid@plt>
+=> 0x0804859a <+14>:	cmp    eax,0x1092
+   0x0804859f <+19>:	je     0x80485cb <main+63>
+   0x080485a1 <+21>:	call   0x8048380 <getuid@plt>
+   0x080485a6 <+26>:	mov    edx,0x80486c8
+   0x080485ab <+31>:	mov    DWORD PTR [esp+0x8],0x1092
+   0x080485b3 <+39>:	mov    DWORD PTR [esp+0x4],eax
+   0x080485b7 <+43>:	mov    DWORD PTR [esp],edx
+   0x080485ba <+46>:	call   0x8048360 <printf@plt>
+   0x080485bf <+51>:	mov    DWORD PTR [esp],0x1
+   0x080485c6 <+58>:	call   0x80483a0 <exit@plt>
+   0x080485cb <+63>:	mov    DWORD PTR [esp],0x80486ef
+   0x080485d2 <+70>:	call   0x8048474 <ft_des>
+   0x080485d7 <+75>:	mov    edx,0x8048709
+   0x080485dc <+80>:	mov    DWORD PTR [esp+0x4],eax
+   0x080485e0 <+84>:	mov    DWORD PTR [esp],edx
+   0x080485e3 <+87>:	call   0x8048360 <printf@plt>
+   0x080485e8 <+92>:	leave
+   0x080485e9 <+93>:	ret
+End of assembler dump.
+(gdb) x/s $eax
+0x7dd:	 <Address 0x7dd out of bounds>
+(gdb) info registers
+eax            0x7dd	2013
+ecx            0xbffff6e4	-1073744156
+edx            0xbffff674	-1073744268
+ebx            0xb7fd0ff4	-1208152076
+esp            0xbffff630	0xbffff630
+ebp            0xbffff648	0xbffff648
+esi            0x0	0
+edi            0x0	0
+eip            0x804859a	0x804859a <main+14>
+eflags         0x200246	[ PF ZF IF ID ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+(gdb) set $eax 4242
+A syntax error in expression, near `4242'.
+(gdb) set $eax 0x1092
+A syntax error in expression, near `0x1092'.
+(gdb) set $eax = 0x1092
+(gdb) info registers
+eax            0x1092	4242
+ecx            0xbffff6e4	-1073744156
+edx            0xbffff674	-1073744268
+ebx            0xb7fd0ff4	-1208152076
+esp            0xbffff630	0xbffff630
+ebp            0xbffff648	0xbffff648
+esi            0x0	0
+edi            0x0	0
+eip            0x804859a	0x804859a <main+14>
+eflags         0x200246	[ PF ZF IF ID ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+(gdb) continue
+Continuing.
+your token is 2A31L79asukciNyi8uppkEuSx
+[Inferior 1 (process 2899) exited with code 050]
+(gdb) quit
