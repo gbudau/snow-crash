@@ -1,0 +1,217 @@
+Already tested things:
+
+- find by user, groups, and name: "*flag14*", "*level14*"
+- look processes
+- look for open ports
+- inspect in chron tab configs
+- inspect in apache server configs
+- inspect home folder, bash configs
+- strace getflag -> "you should not reverse this"
+- strings getflag -> "You are root are you that dumb ?"
+
+# Option 1
+
+We try to do a root privilege escalation.
+
+We run linux exploit suggester: https://github.com/The-Z-Labs/linux-exploit-suggester and we get a suggestion for a "dirtycow" vulnerability.
+
+Checking the current kernel version we confirm we have a vulnerable one:
+
+```
+level14@SnowCrash:/tmp$ uname -r
+3.2.0-89-generic-pae
+```
+
+We try multiple exploits until this one works: https://github.com/firefart/dirtycow/tree/master
+
+This exploit creates a user with root permissions writting in the /etc/passwd file. We log in with the user and run `getflag`:
+
+```
+firefart@SnowCrash:/tmp# getflag
+Check flag.Here is your token : You are root are you that dumb ?
+```
+
+We realize, since we are root, that we can log with any user, so logging with flag14:
+
+```
+firefart@SnowCrash:/tmp# su flag14
+Congratulation. Type getflag to get the key and send it to me the owner of this livecd :)
+flag14@SnowCrash:~$ getflag
+Check flag.Here is your token : 7QiHafiNa3HVozsaXkawuYrTstxbpABHD8CPnHJ
+```
+
+# Option 2
+
+We try to debug the getflag binary, faking the registers to bypass checks as we did with the previous level
+
+
+Here is the trace:
+
+(gdb) run
+Starting program: /bin/getflag 
+
+Breakpoint 1, 0x0804898e in main ()
+(gdb) target record-full
+Undefined target command: "record-full".  Try "help target".
+(gdb) target record
+(gdb) set $eax=0
+(gdb) continue
+Continuing.
+
+Breakpoint 2, 0x080489b4 in main ()
+(gdb) set $eax=0
+(gdb) continue
+Continuing.
+
+Breakpoint 3, 0x080489fe in main ()
+(gdb) set $eax=0
+(gdb) continue
+Continuing.
+
+Breakpoint 4, 0x08048a48 in main ()
+(gdb) set $eax=0
+(gdb) continue
+Continuing.
+pepe
+
+Breakpoint 5, 0x08048ea5 in main ()
+(gdb) set $eax=1
+(gdb) continue
+Continuing.
+
+Breakpoint 6, 0x08048a9d in main ()
+(gdb) set $eax=1
+(gdb) set $eax=0
+(gdb) ni
+0x08048a9f in main ()
+(gdb) ni
+0x08048aae in main ()
+(gdb) ni
+0x08048ab3 in main ()
+(gdb) ni
+0x08048e89 in main ()
+(gdb) continue
+Continuing.
+pepe
+
+Breakpoint 5, 0x08048ea5 in main ()
+(gdb) set $eax=1
+(gdb) continue
+Continuing.
+
+Breakpoint 6, 0x08048a9d in main ()
+(gdb) set $eax=0
+(gdb) ni
+0x08048a9f in main ()
+(gdb) ni
+0x08048aae in main ()
+(gdb) x/d  $esp + 0x10
+0xbffff550:	0
+(gdb) set {int}($esp + 0x10) = 1
+(gdb) x/d  $esp + 0x10
+0xbffff550:	1
+(gdb) ni
+0x08048ab3 in main ()
+(gdb) ni
+0x08048ab9 in main ()
+(gdb) b *0x08048ac8
+Breakpoint 8 at 0x8048ac8
+(gdb) continue
+Continuing.
+
+Breakpoint 8, 0x08048ac8 in main ()
+(gdb) ni
+0x08048acd in main ()
+(gdb) x/d  $eax
+0x0:	Cannot access memory at address 0x0
+(gdb) set $eax=1
+(gdb) ni
+0x08048acf in main ()
+(gdb) ni
+0x08048ad5 in main ()
+(gdb) b *0x08048afd
+Breakpoint 9 at 0x8048afd
+(gdb) continue
+Continuing.
+
+Breakpoint 9, 0x08048afd in main ()
+(gdb) ni
+0x08048b02 in main ()
+(gdb) x/d  $eax
+0x7de:	Cannot access memory at address 0x7de
+(gdb) x/d  $eax
+0x7de:	Cannot access memory at address 0x7de
+(gdb) x/d  $eax + 0x10
+0x7ee:	Cannot access memory at address 0x7ee
+(gdb) print $eax
+$4 = 2014
+(gdb) set $eax=3014
+(gdb) print $eax
+$5 = 3014
+(gdb) ni
+0x08048b06 in main ()
+(gdb) continue
+Continuing.
+peCheck flag.Here is your token : 7QiHafiNa3HVozsaXkawuYrTstxbpABHD8CPnHJ
+pThe next instruction is syscall exit_group.  It will make the program exit.  Do you want to stop the program?([y] or y       
+Process record: inferior program stopped.
+
+[process 6346] #1 stopped.
+0xb7fdd41d in __kernel_vsyscall ()
+(gdb) 
+
+
+# Option 3
+
+Using gbd jump instruction we can jump directly into the desired instruction. We decide to jump just before calling for the last time ft_des, which apparently decrypts the flag, assuming the last call will be done for the last user, flag14:
+
+level14@SnowCrash:/tmp$ gdb /bin/getflag
+GNU gdb (Ubuntu/Linaro 7.4-2012.04-0ubuntu2.1) 7.4-2012.04
+Copyright (C) 2012 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "i686-linux-gnu".
+For bug reporting instructions, please see:
+<http://bugs.launchpad.net/gdb-linaro/>...
+Reading symbols from /bin/getflag...(no debugging symbols found)...done.
+(gdb) b main
+Breakpoint 1 at 0x804894a
+(gdb) run
+Starting program: /bin/getflag 
+
+Breakpoint 1, 0x0804894a in main ()
+(gdb) jump *0x08048de5
+Continuing at 0x8048de5.
+7QiHafiNa3HVozsaXkawuYrTstxbpABHD8CPnHJ
+*** stack smashing detected ***: /bin/getflag terminated
+======= Backtrace: =========
+/lib/i386-linux-gnu/libc.so.6(__fortify_fail+0x45)[0xb7f2fd95]
+/lib/i386-linux-gnu/libc.so.6(+0x103d4a)[0xb7f2fd4a]
+/bin/getflag[0x8048ec7]
+/lib/i386-linux-gnu/libc.so.6(__libc_start_main+0xf3)[0xb7e454d3]
+/bin/getflag[0x8048571]
+======= Memory map: ========
+08048000-0804a000 r-xp 00000000 07:00 12700      /bin/getflag
+0804a000-0804b000 r--p 00001000 07:00 12700      /bin/getflag
+0804b000-0804c000 rw-p 00002000 07:00 12700      /bin/getflag
+0804c000-0806d000 rw-p 00000000 00:00 0          [heap]
+b7e07000-b7e23000 r-xp 00000000 07:00 14117      /lib/i386-linux-gnu/libgcc_s.so.1
+b7e23000-b7e24000 r--p 0001b000 07:00 14117      /lib/i386-linux-gnu/libgcc_s.so.1
+b7e24000-b7e25000 rw-p 0001c000 07:00 14117      /lib/i386-linux-gnu/libgcc_s.so.1
+b7e2b000-b7e2c000 rw-p 00000000 00:00 0 
+b7e2c000-b7fcf000 r-xp 00000000 07:00 14123      /lib/i386-linux-gnu/libc-2.15.so
+b7fcf000-b7fd1000 r--p 001a3000 07:00 14123      /lib/i386-linux-gnu/libc-2.15.so
+b7fd1000-b7fd2000 rw-p 001a5000 07:00 14123      /lib/i386-linux-gnu/libc-2.15.so
+b7fd2000-b7fd5000 rw-p 00000000 00:00 0 
+b7fd9000-b7fdd000 rw-p 00000000 00:00 0 
+b7fdd000-b7fde000 r-xp 00000000 00:00 0          [vdso]
+b7fde000-b7ffe000 r-xp 00000000 07:00 14081      /lib/i386-linux-gnu/ld-2.15.so
+b7ffe000-b7fff000 r--p 0001f000 07:00 14081      /lib/i386-linux-gnu/ld-2.15.so
+b7fff000-b8000000 rw-p 00020000 07:00 14081      /lib/i386-linux-gnu/ld-2.15.so
+bffdf000-c0000000 rw-p 00000000 00:00 0          [stack]
+
+Program received signal SIGABRT, Aborted.
+0xb7fdd428 in __kernel_vsyscall ()
+(gdb) 
