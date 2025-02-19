@@ -1,17 +1,53 @@
+Scanning again the machine we realize there is a plain password hash in /etc/password file for flag01 user:
+
 level01@SnowCrash:~$ cat /etc/passwd
 ...
 flag01:42hDRfypTqqnw:3001:3001::/home/flag/flag01:/bin/bash
 ...
 
-Install john:
+
+Lets try to crack it using jonh the ripper password cracker:
 https://github.com/openwall/john
 
-Crack the password using john:
-~/src/john/run on bleeding-jumbo
-% echo "flag01:42hDRfypTqqnw:3001:3001::/home/flag/flag01:/bin/bash" > ~/flag01.passwd
+For simplifying the process we use the custom script we have created:
 
-~/src/john/run on bleeding-jumbo
-% ./john --show ~/flag01.passwd
+➜  resources git:(main) ✗ sudo ./run.sh flag01:42hDRfypTqqnw:3001:3001::/home/flag/flag01:/bin/bash
+Using default tag: latest
+latest: Pulling from phocean/john_the_ripper_jumbo
+e7ae86ffe2df: Pull complete 
+c9a0dce268a5: Pull complete 
+4f4fb700ef54: Pull complete 
+Digest: sha256:1c1a06258daba3d16824b967d6b1ae3e962b16286114e46923957aeadc3e0139
+Status: Downloaded newer image for phocean/john_the_ripper_jumbo:latest
+docker.io/phocean/john_the_ripper_jumbo:latest
+ac03652101817ec4b442488af121d636e875484f5f8ebec286889af163f15534
+Waiting for container to start...
+Cracking password...
+Using default input encoding: UTF-8
+Loaded 1 password hash (descrypt, traditional crypt(3) [DES 256/256 AVX2])
+Will run 4 OpenMP threads
+Proceeding with single, rules:Single
+Press Ctrl-C to abort, or send SIGUSR1 to john process for status
+Almost done: Processing the remaining buffered candidate passwords, if any.
+Warning: Only 642 candidates buffered for the current salt, minimum 1024 needed for performance.
+Proceeding with wordlist:./password.lst
+abcdefg          (flag01)     
+1g 0:00:00:00 DONE 2/3 (2025-02-19 16:09) 33.33g/s 862000p/s 862000c/s 862000C/s 123456..HALLO
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed. 
 flag01:abcdefg:3001:3001::/home/flag/flag01:/bin/bash
 
 1 password hash cracked, 0 left
+
+And we get our unencrypted hash:
+
+flag01:abcdefg:3001:3001::/home/flag/flag01:/bin/bash
+
+We log in with the unencrypted password with flag01 user and get the flag:
+
+level01@SnowCrash:~$ su flag01
+Password:
+Don't forget to launch getflag !
+flag01@SnowCrash:~$ getflag
+Check flag.Here is your token : f2av5il02puano7naaf6adaaf
+
