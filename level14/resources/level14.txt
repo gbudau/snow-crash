@@ -215,3 +215,17 @@ bffdf000-c0000000 rw-p 00000000 00:00 0          [stack]
 Program received signal SIGABRT, Aborted.
 0xb7fdd428 in __kernel_vsyscall ()
 (gdb) 
+
+
+To automate the process we can run the following script:
+
+```
+gdb -q /bin/getflag <<EOF
+set disassembly-flavour intel
+b main
+run
+jump *0x08048de5
+continue
+quit
+EOF
+```

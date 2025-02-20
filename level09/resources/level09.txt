@@ -1,7 +1,18 @@
+We find a binary file named level09 and a file named token in the home directory of level09 user.
+
 We run the binary with some inputs and notice the input is encoded by adding the index to each ascii character
 
-We create a python script to decode the token file, get the token and use it as password for the flag10 user
-then we get the flag
+level09@SnowCrash:~$ ./level09 12345
+13579
+level09@SnowCrash:~$ ./level09 abcde
+acegi
+
+We create a python script to decode the token file:
+
+cat <<'EOF' > /tmp/level09.py
+#!/usr/bin/env python
+
+import sys
 
 def decode_bytes(filename):
     """Decode a file where each byte has been encoded by adding its index."""
@@ -10,13 +21,31 @@ def decode_bytes(filename):
 
     decoded_bytes = bytearray()
     for index, byte in enumerate(encoded_bytes):
-        decoded_byte = (byte - index) % 256
+        # Convert byte to integer for arithmetic operations
+        decoded_byte = (ord(byte) - index) % 256
         decoded_bytes.append(decoded_byte)
     return decoded_bytes
 
 if __name__ == "__main__":
-    token_filename = "token"
-    decoded_output = decode_bytes(token_filename)
+    if len(sys.argv) != 2:
+        print "Usage: {} <filename>".format(sys.argv[0])
+        sys.exit(1)
+    decoded_output = decode_bytes(sys.argv[1])
 
-    print("Decoded content:")
-    print(decoded_output.decode())
+    print "Decoded content:"
+    print decoded_output
+EOF
+
+chmod +x /tmp/level09.py
+/tmp/level09.py ./token
+
+Decoded content:
+f3iji1ju5yuevaus41q1afiuq
+
+We get the token and use it as password for the flag09 user then we get the flag:
+
+level09@SnowCrash:~$ su flag09
+Password:
+Don't forget to launch getflag !
+flag09@SnowCrash:~$ getflag
+Check flag.Here is your token : s5cAJpM8ev6XHw998pRWG728z

