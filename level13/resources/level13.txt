@@ -179,3 +179,23 @@ Continuing.
 your token is 2A31L79asukciNyi8uppkEuSx
 [Inferior 1 (process 2899) exited with code 050]
 (gdb) quit
+
+
+To automate the process we can run the following script:
+
+```
+BINARY="/home/user/level13/level13"
+
+gdb -q $BINARY <<EOF
+set disassembly-flavour intel
+file $BINARY
+b main
+run
+b getuid
+continue
+finish
+set \$eax = 0x1092
+continue
+quit
+EOF
+```

